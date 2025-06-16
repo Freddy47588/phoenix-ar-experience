@@ -1,50 +1,55 @@
 <!DOCTYPE html>
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Phoenix Terbang</title>
-     <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
-  </head>
-  <body style="margin: 0; overflow: hidden">
-    <a-scene embedded arjs>
-      <!-- Asset preload -->
-      <a-assets>
-        <a-asset-item id="phoenixModel" src="assets/3d/phoenix.gltf"></a-asset-item>
-        <audio id="phoenixSound" src="assets/audio/phoenix1.mp3" preload="auto"></audio>
-      </a-assets>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AR Phoenix Terbang</title>
+  <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+</head>
+<body style="margin: 0; overflow: hidden">
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    renderer="logarithmicDepthBuffer: true;"
+  >
+    <!-- Asset preload -->
+    <a-assets>
+      <a-asset-item id="phoenixModel" src="assets/3d/scene.gltf"></a-asset-item>
+      <audio id="phoenixSound" src="assets/audio/phoenix1.mp3" preload="auto"></audio>
+    </a-assets>
 
-      <!-- Marker -->
-      <a-marker preset="pattern" type="pattern" url="assets/marker/pattern-phoenix.patt">
-        <a-entity
-          id="phoenix"
-          gltf-model="#phoenixModel"
-          scale="1 1 1"
-          position="0 0.5 0"
-          animation__float="property: position; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true; to: 0 1 0"
-          animation__rotate="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true"
-        ></a-entity>
+    <!-- Marker -->
+    <a-marker preset="pattern" type="pattern" url="assets/marker/pattern-phoenix.patt">
+      <a-entity
+        id="phoenix"
+        gltf-model="#phoenixModel"
+        scale="1 1 1"
+        position="0 0.5 0"
+        animation-mixer="clip: Fly; loop: repeat"
+        animation__float="property: position; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true; to: 0 1 0"
+        animation__rotate="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true"
+      ></a-entity>
 
-        <a-sound id="phoenixAudio" src="#phoenixSound" autoplay="false" loop="true"></a-sound>
-      </a-marker>
+      <a-sound id="phoenixAudio" src="#phoenixSound" autoplay="false" loop="true" volume="1"></a-sound>
+    </a-marker>
 
-      <!-- Kamera -->
-      <a-entity camera></a-entity>
-    </a-scene>
+    <a-entity camera></a-entity>
+  </a-scene>
 
-    <script>
-      const marker = document.querySelector("a-marker");
-      const soundEntity = document.querySelector("#phoenixAudio");
+  <script>
+    const marker = document.querySelector("a-marker");
+    const soundEntity = document.querySelector("#phoenixAudio");
 
-      marker.addEventListener("markerFound", () => {
-        soundEntity.components.sound.playSound();
-      });
+    marker.addEventListener("markerFound", () => {
+      soundEntity.components.sound.playSound();
+    });
 
-      marker.addEventListener("markerLost", () => {
-        soundEntity.components.sound.stopSound();
-      });
-    </script>
-  </body>
+    marker.addEventListener("markerLost", () => {
+      soundEntity.components.sound.stopSound();
+    });
+  </script>
+</body>
 </html>
