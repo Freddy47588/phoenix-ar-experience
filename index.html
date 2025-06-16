@@ -17,13 +17,12 @@
       </a-assets>
 
       <!-- Marker -->
-      <a-marker preset="custom" type="pattern" url="assets/marker/pattern-phoenix.patt">
+      <a-marker preset="pattern" type="pattern" url="assets/marker/pattern-phoenix.patt">
         <a-entity
           id="phoenix"
           gltf-model="#phoenixModel"
           scale="1 1 1"
           position="0 0.5 0"
-          animation-mixer="clip: Fly; loop: repeat; timeScale: 1"
           animation__float="property: position; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true; to: 0 1 0"
           animation__rotate="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true"
         ></a-entity>
