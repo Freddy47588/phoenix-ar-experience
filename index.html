@@ -24,14 +24,16 @@
     <!-- Marker -->
     <a-marker preset="pattern" type="pattern" url="assets/marker/pattern-phoenix.patt">
       <a-entity
-        id="phoenix"
-        gltf-model="#phoenixModel"
-        scale="1 1 1"
-        position="0 0.5 0"
-        animation-mixer="clip: Take 001; loop: repeat"
-        animation__float="property: position; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true; to: 0 1 0"
-        animation__rotate="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true"
-      ></a-entity>
+  id="phoenix"
+  gltf-model="#phoenixModel"
+  scale="0.01 0.01 0.01"
+  position="0 0 0"
+  animation-mixer="clip: Take 001; loop: repeat"
+  animation__float="property: position; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true; to: 0 0.2 0"
+  animation__rotate="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true"
+></a-entity>
+
+
 
       <a-sound id="phoenixAudio" src="#phoenixSound" autoplay="false" loop="true" volume="1"></a-sound>
     </a-marker>
