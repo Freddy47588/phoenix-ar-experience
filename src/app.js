@@ -1,38 +1,53 @@
 (() => {
   "use strict";
   const $ = (selector) => document.querySelector(selector);
-  const ui = { start: $("#start-screen"), startButton: $("#start-button"), root: $("#scene-root"), template: $("#ar-scene-template"), toolbar: $("#ar-toolbar"), statusCard: $(".status-card"), status: $("#tracking-status"), mute: $("#mute-button"), fullscreen: $("#fullscreen-button"), loading: $("#loading"), loadingText: $("#loading-message"), error: $("#error-message"), dialog: $("#marker-dialog"), close: $("#close-marker") };
-  let markerVisible = false, muted = false, audioBlocked = false, soundEntity;
-  const showError = (message) => { ui.loading.hidden = true; ui.error.textContent = message; ui.error.hidden = false; };
-  const setStatus = (message, detected = false) => { ui.status.textContent = message; ui.statusCard.classList.toggle("is-detected", detected); };
-  function handleAudioBlock(error) { audioBlocked = true; console.warn("Phoenix audio playback was blocked:", error); ui.mute.textContent = "🔇"; ui.mute.setAttribute("aria-label", "Enable Phoenix audio"); }
-  function playAudio() {
-    if (muted || !markerVisible || !soundEntity?.components?.sound) return;
-    try { const result = soundEntity.components.sound.playSound(); if (result?.catch) result.catch(handleAudioBlock); audioBlocked = false; } catch (error) { handleAudioBlock(error); }
+  const LIVE_URL = "https://freddy47588.github.io/phoenix-ar-experience/";
+  const ui = { start: $("#start-screen"), startButton: $("#start-button"), previewButton: $("#preview-button"), root: $("#scene-root"), arTemplate: $("#ar-scene-template"), previewTemplate: $("#preview-scene-template"), arToolbar: $("#ar-toolbar"), previewToolbar: $("#preview-toolbar"), statusCard: $(".status-card"), status: $("#tracking-status"), mute: $("#mute-button"), fullscreen: $("#fullscreen-button"), reset: $("#reset-preview"), closePreview: $("#close-preview"), loading: $("#loading"), loadingText: $("#loading-message"), error: $("#error-message"), dialog: $("#marker-dialog"), close: $("#close-marker"), orientation: $("#orientation-note"), toast: $("#toast"), qr: $("#qr-code") };
+  const state = { mode: "landing", markerVisible: false, muted: false, audioBlocked: false, sound: null, cleanup: [], errorTimer: null, toastTimer: null };
+
+  function setStatus(message, detected = false) { ui.status.textContent = message; ui.statusCard.classList.toggle("is-detected", detected); }
+  function showToast(message) { ui.toast.textContent = message; ui.toast.hidden = false; clearTimeout(state.toastTimer); state.toastTimer = setTimeout(() => { ui.toast.hidden = true; }, 1800); }
+  function showError(message, retry) { clearTimeout(state.errorTimer); ui.loading.hidden = true; ui.error.replaceChildren(document.createTextNode(message)); if (retry) { const button = document.createElement("button"); button.className = "text-button"; button.type = "button"; button.textContent = "Try again"; button.addEventListener("click", retry, { once: true }); ui.error.append(document.createElement("br"), button); } ui.error.hidden = false; }
+  function clearError() { ui.error.hidden = true; ui.error.replaceChildren(); }
+  function stopAudio() { state.sound?.components?.sound?.stopSound(); }
+  function playAudio() { if (state.muted || !state.markerVisible || !state.sound?.components?.sound) return; try { state.sound.components.sound.playSound(); state.audioBlocked = false; } catch (error) { state.audioBlocked = true; console.warn("Phoenix audio playback was blocked.", error); } }
+  function setScale(entity, value) { const scale = Math.min(0.02, Math.max(0.0065, value)); entity.setAttribute("scale", `${scale} ${scale} ${scale}`); return scale; }
+  function react(phoenix) { const original = phoenix.getAttribute("scale") || { x: 1, y: 1, z: 1 }; phoenix.setAttribute("animation__pulse", "property: scale; from: 1 1 1; to: 1.12 1.12 1.12; dir: alternate; dur: 220; easing: easeOutQuad; loop: 2"); showToast("Phoenix awakened"); if (state.markerVisible && state.audioBlocked) playAudio(); setTimeout(() => phoenix.setAttribute("scale", original), 900); }
+  function clearScene() { state.cleanup.splice(0).forEach((dispose) => dispose()); stopAudio(); state.sound = null; state.markerVisible = false; ui.root.replaceChildren(); ui.arToolbar.hidden = true; ui.previewToolbar.hidden = true; ui.orientation.hidden = true; ui.loading.hidden = true; clearError(); }
+  function listen(target, type, handler, options) { target.addEventListener(type, handler, options); state.cleanup.push(() => target.removeEventListener(type, handler, options)); }
+  function addGestures(surface, target, options) {
+    let startX = 0, startY = 0, startDistance = 0, startScale = options.defaultScale, moved = false, rotation = 0;
+    const distance = (touches) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+    const scaleTarget = (value) => { const clamped = Math.min(options.maxScale, Math.max(options.minScale, value)); target.setAttribute("scale", `${clamped} ${clamped} ${clamped}`); return clamped; };
+    listen(surface, "pointerdown", (event) => { if (event.pointerType === "touch") return; startX = event.clientX; startY = event.clientY; moved = false; surface.setPointerCapture?.(event.pointerId); }, { passive: true });
+    listen(surface, "pointermove", (event) => { if (event.pointerType === "touch" || !event.buttons) return; const dx = event.clientX - startX, dy = event.clientY - startY; if (Math.abs(dx) + Math.abs(dy) > 5) moved = true; rotation += dx * 0.45; target.setAttribute("rotation", `0 ${rotation} 0`); startX = event.clientX; startY = event.clientY; }, { passive: true });
+    listen(surface, "pointerup", (event) => { if (event.pointerType !== "touch" && !moved && options.onTap) options.onTap(); }, { passive: true });
+    listen(surface, "wheel", (event) => { if (state.mode !== options.mode) return; event.preventDefault(); startScale = scaleTarget(startScale * (event.deltaY > 0 ? .92 : 1.08)); }, { passive: false });
+    listen(surface, "touchstart", (event) => { if (event.touches.length === 1) { startX = event.touches[0].clientX; startY = event.touches[0].clientY; moved = false; } if (event.touches.length === 2) { startDistance = distance(event.touches); const s = target.getAttribute("scale"); startScale = s.x; } }, { passive: true });
+    listen(surface, "touchmove", (event) => { if (event.touches.length === 1) { const dx = event.touches[0].clientX - startX, dy = event.touches[0].clientY - startY; if (Math.abs(dx) + Math.abs(dy) > 6) { moved = true; rotation += dx * .45; target.setAttribute("rotation", `0 ${rotation} 0`); startX = event.touches[0].clientX; startY = event.touches[0].clientY; event.preventDefault(); } } else if (event.touches.length === 2 && startDistance) { scaleTarget(startScale * (distance(event.touches) / startDistance)); event.preventDefault(); } }, { passive: false });
+    listen(surface, "touchend", (event) => { if (!moved && event.touches.length === 0 && options.onTap) options.onTap(); }, { passive: true });
+    return () => { rotation = 0; scaleTarget(options.defaultScale); };
   }
-  function stopAudio() { soundEntity?.components?.sound?.stopSound(); }
-  function bindScene(scene) {
-    const marker = scene.querySelector("#phoenix-marker"), phoenix = scene.querySelector("#phoenix"), model = scene.querySelector("#phoenix-model"); soundEntity = scene.querySelector("#phoenix-audio");
-    scene.addEventListener("loaded", () => { ui.loadingText.textContent = "Loading Phoenix..."; });
-    phoenix.addEventListener("model-loaded", () => { ui.loading.hidden = true; });
-    const handleModelError = (event) => { console.error("Phoenix model failed to load:", event); showError("The Phoenix could not be loaded. Check your connection and reload the page."); };
-    model.addEventListener("error", handleModelError);
-    phoenix.addEventListener("model-error", handleModelError);
-    marker.addEventListener("markerFound", () => { markerVisible = true; setStatus("Phoenix detected", true); playAudio(); });
-    marker.addEventListener("markerLost", () => { markerVisible = false; setStatus("Marker lost — point the camera at the marker"); stopAudio(); });
-    phoenix.addEventListener("click", () => { phoenix.setAttribute("scale", "0.012 0.012 0.012"); setTimeout(() => phoenix.setAttribute("scale", "0.01 0.01 0.01"), 240); if (markerVisible && !muted && audioBlocked) playAudio(); });
-    setTimeout(() => { if (!document.querySelector("video") && !ui.loading.hidden) showError("Camera access is required. Allow camera permission, then reload the page."); }, 12000);
+  function bindAR(scene) {
+    const marker = scene.querySelector("#phoenix-marker"), phoenix = scene.querySelector("#phoenix"), transform = scene.querySelector("#phoenix-transform"), model = scene.querySelector("#phoenix-model"); state.sound = scene.querySelector("#phoenix-audio");
+    scene.addEventListener("loaded", () => { ui.loadingText.textContent = "Loading Phoenix..."; }, { once: true });
+    phoenix.addEventListener("model-loaded", () => { ui.loading.hidden = true; }, { once: true });
+    const modelError = () => showError("Phoenix could not be loaded.", () => startAR()); model.addEventListener("error", modelError, { once: true }); phoenix.addEventListener("model-error", modelError, { once: true });
+    listen(marker, "markerFound", () => { state.markerVisible = true; setStatus("Phoenix detected", true); playAudio(); });
+    listen(marker, "markerLost", () => { state.markerVisible = false; setStatus("Marker lost — point at the marker"); stopAudio(); });
+    addGestures(scene.canvas || scene, transform, { mode: "ar", defaultScale: .01, minScale: .0065, maxScale: .02, onTap: () => react(phoenix) });
+    state.errorTimer = setTimeout(() => { if (!scene.querySelector("video") && !ui.loading.hidden) showError("Camera access is required.", () => startAR()); }, 12000);
   }
   function startAR() {
-    if (!navigator.mediaDevices?.getUserMedia) return showError("This browser cannot access a camera. Try a current mobile browser over HTTPS.");
-    ui.startButton.disabled = true; ui.start.classList.add("is-hidden"); ui.toolbar.hidden = false; ui.loading.hidden = false; ui.root.append(ui.template.content.cloneNode(true)); bindScene(ui.root.querySelector("a-scene"));
+    clearScene(); if (!navigator.mediaDevices?.getUserMedia) return showError("This browser cannot access a camera. Try a current mobile browser over HTTPS."); state.mode = "ar"; ui.start.classList.add("is-hidden"); ui.arToolbar.hidden = false; ui.loadingText.textContent = "Preparing AR experience..."; ui.loading.hidden = false; ui.root.append(ui.arTemplate.content.cloneNode(true)); const scene = ui.root.querySelector("a-scene"); scene.addEventListener("render-target-loaded", () => bindAR(scene), { once: true });
   }
-  ui.startButton.addEventListener("click", startAR, { once: true });
-  ui.mute.addEventListener("click", () => { muted = !muted; ui.mute.setAttribute("aria-pressed", String(muted)); ui.mute.setAttribute("aria-label", muted ? "Unmute Phoenix audio" : "Mute Phoenix audio"); ui.mute.textContent = muted ? "🔇" : "🔊"; muted ? stopAudio() : playAudio(); });
-  document.querySelectorAll("[data-open-marker]").forEach((button) => button.addEventListener("click", () => ui.dialog.showModal()));
-  ui.close.addEventListener("click", () => ui.dialog.close()); ui.dialog.addEventListener("click", (event) => { if (event.target === ui.dialog) ui.dialog.close(); });
-  if (!document.fullscreenEnabled) ui.fullscreen.hidden = true;
-  ui.fullscreen.addEventListener("click", async () => { try { document.fullscreenElement ? await document.exitFullscreen() : await document.documentElement.requestFullscreen(); } catch (error) { console.warn("Fullscreen unavailable:", error); showError("Fullscreen is not available in this browser."); } });
-  document.addEventListener("fullscreenchange", () => ui.fullscreen.setAttribute("aria-label", document.fullscreenElement ? "Exit fullscreen" : "Enter fullscreen"));
-  window.addEventListener("camera-error", () => showError("Camera access is required. Allow camera permission, then reload the page."));
+  function startPreview() {
+    clearScene(); state.mode = "preview"; ui.start.classList.add("is-hidden"); ui.previewToolbar.hidden = false; ui.loadingText.textContent = "Loading 3D preview..."; ui.loading.hidden = false; ui.root.append(ui.previewTemplate.content.cloneNode(true)); const scene = ui.root.querySelector("a-scene"); scene.addEventListener("render-target-loaded", () => { const phoenix = scene.querySelector("#preview-phoenix"), rig = scene.querySelector("#preview-rig"); phoenix.addEventListener("model-loaded", () => { ui.loading.hidden = true; }, { once: true }); phoenix.addEventListener("model-error", () => showError("Phoenix could not be loaded.", startPreview), { once: true }); addGestures(scene.canvas || scene, phoenix, { mode: "preview", defaultScale: .011, minScale: .007, maxScale: .021 }); listen(ui.reset, "click", () => { phoenix.setAttribute("rotation", "0 0 0"); phoenix.setAttribute("scale", ".011 .011 .011"); rig.setAttribute("position", "0 -0.65 -4.8"); showToast("View reset"); }); }, { once: true });
+  }
+  function leavePreview() { clearScene(); state.mode = "landing"; ui.start.classList.remove("is-hidden"); }
+  function updateOrientation() { ui.orientation.hidden = !(state.mode === "ar" && window.matchMedia("(orientation: landscape) and (max-width: 900px)").matches); }
+  function makeQR() { if (window.matchMedia("(min-width: 760px)").matches && window.QRCode && !ui.qr.hasChildNodes()) new window.QRCode(ui.qr, { text: LIVE_URL, width: 144, height: 144, colorDark: "#120b0a", colorLight: "#ffffff", correctLevel: window.QRCode.CorrectLevel.M }); }
+  ui.startButton.addEventListener("click", startAR); ui.previewButton.addEventListener("click", startPreview); ui.closePreview.addEventListener("click", leavePreview); ui.mute.addEventListener("click", () => { state.muted = !state.muted; ui.mute.setAttribute("aria-pressed", String(state.muted)); ui.mute.setAttribute("aria-label", state.muted ? "Unmute Phoenix audio" : "Mute Phoenix audio"); ui.mute.textContent = state.muted ? "🔇" : "🔊"; state.muted ? stopAudio() : playAudio(); });
+  document.querySelectorAll("[data-open-marker]").forEach((button) => button.addEventListener("click", () => ui.dialog.showModal())); ui.close.addEventListener("click", () => ui.dialog.close()); ui.dialog.addEventListener("click", (event) => { if (event.target === ui.dialog) ui.dialog.close(); });
+  if (!document.fullscreenEnabled) ui.fullscreen.hidden = true; ui.fullscreen.addEventListener("click", async () => { try { document.fullscreenElement ? await document.exitFullscreen() : await document.documentElement.requestFullscreen(); } catch { showToast("Fullscreen is unavailable"); } }); document.addEventListener("fullscreenchange", () => ui.fullscreen.setAttribute("aria-label", document.fullscreenElement ? "Exit fullscreen" : "Enter fullscreen")); window.addEventListener("orientationchange", updateOrientation); window.addEventListener("resize", makeQR); makeQR();
 })();
