@@ -1,59 +1,31 @@
-<!DOCTYPE html>
-<html lang="id">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AR Phoenix Terbang</title>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#120b0a"><meta name="description" content="A lightweight marker-based Phoenix augmented reality experience.">
+  <title>Phoenix WebAR</title><link rel="stylesheet" href="src/styles.css">
   <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.7/aframe/build/aframe-ar.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@7.5.4/dist/aframe-extras.loaders.min.js"></script>
+  <script src="src/app.js" defer></script>
 </head>
-<body style="margin: 0; overflow: hidden">
-  <a-scene
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: false;"
-    renderer="logarithmicDepthBuffer: true;"
-  >
-    <!-- Asset preload -->
-    <a-assets>
-      <a-asset-item id="phoenixModel" src="assets/3d/scene.gltf"></a-asset-item>
-      <audio id="phoenixSound" src="assets/audio/phoenix1.mp3" preload="auto"></audio>
-    </a-assets>
-
-    <!-- Marker -->
-    <a-marker preset="pattern" type="pattern" url="assets/marker/pattern-phoenix.patt">
-      <a-entity
-       id="phoenix"
-       gltf-model="#phoenixModel"
-       scale="0.01 0.01 0.01"
-       position="0 0 0"
-       animation-mixer="clip: Take 001; loop: repeat"
-       animation__float="property: position; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true; to: 0 0.2 0"
-       animation__rotate="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true"
-      ></a-entity>
-
-<a-light type="directional" intensity="0.8" position="1 2 1"></a-light>
-<a-light type="ambient" intensity="0.5"></a-light>
-
-
-      <a-sound id="phoenixAudio" src="#phoenixSound" autoplay="false" loop="true" volume="1"></a-sound>
-    </a-marker>
-
-    <a-entity camera></a-entity>
-  </a-scene>
-
-  <script>
-    const marker = document.querySelector("a-marker");
-    const soundEntity = document.querySelector("#phoenixAudio");
-
-    marker.addEventListener("markerFound", () => {
-      soundEntity.components.sound.playSound();
-    });
-
-    marker.addEventListener("markerLost", () => {
-      soundEntity.components.sound.stopSound();
-    });
-  </script>
-</body>
-</html>
+<body><main id="app">
+  <section id="start-screen" class="start-screen" aria-labelledby="app-title"><div class="start-card">
+    <div class="phoenix-mark" aria-hidden="true">🔥</div><p class="eyebrow">Marker-based augmented reality</p>
+    <h1 id="app-title">Phoenix WebAR</h1><p class="intro">Bring the Phoenix to life with marker-based augmented reality.</p>
+    <button id="start-button" class="primary-button" type="button">Start AR</button>
+    <p class="permission-note">Camera access is required. Your camera feed stays on this device.</p>
+    <button class="text-button" type="button" data-open-marker>View AR marker</button>
+  </div></section>
+  <div id="scene-root" aria-live="polite"></div>
+  <header id="ar-toolbar" class="ar-toolbar" hidden><div class="status-card"><span class="status-dot" aria-hidden="true"></span><div><strong>Phoenix WebAR</strong><span id="tracking-status">Looking for marker...</span></div></div>
+    <nav class="controls" aria-label="AR controls"><button id="mute-button" class="icon-button" type="button" aria-label="Mute Phoenix audio" aria-pressed="false">🔊</button><button class="icon-button" type="button" aria-label="Show marker help" data-open-marker>?</button><button id="fullscreen-button" class="icon-button" type="button" aria-label="Enter fullscreen">⛶</button></nav>
+  </header>
+  <div id="loading" class="loading-card" role="status" hidden><span class="spinner" aria-hidden="true"></span><span id="loading-message">Preparing AR experience...</span></div>
+  <div id="error-message" class="error-card" role="alert" hidden></div>
+  <dialog id="marker-dialog" class="marker-dialog" aria-labelledby="marker-title"><button id="close-marker" class="close-button" type="button" aria-label="Close marker help">×</button><p class="eyebrow">Tracking target</p><h2 id="marker-title">Find the Phoenix</h2><p>Display or print this marker, then point your camera at it until the Phoenix appears.</p><img src="assets/markers/pattern-phoenix.png" alt="Phoenix pattern marker used to reveal the AR model"><a class="primary-button" href="assets/markers/pattern-phoenix.png" download="phoenix-ar-marker.png">Download Marker</a></dialog>
+</main>
+<template id="ar-scene-template"><a-scene embedded vr-mode-ui="enabled: false" arjs="sourceType: webcam; debugUIEnabled: false;" renderer="logarithmicDepthBuffer: true; colorManagement: true; alpha: true;">
+  <a-assets timeout="20000"><a-asset-item id="phoenix-model" src="assets/models/scene.gltf"></a-asset-item><audio id="phoenix-sound" src="assets/audio/phoenix1.mp3" preload="auto"></audio></a-assets>
+  <a-marker id="phoenix-marker" type="pattern" url="assets/markers/pattern-phoenix.patt"><a-entity id="phoenix" gltf-model="#phoenix-model" scale="0.01 0.01 0.01" position="0 0 0" animation-mixer="clip: Take 001; loop: repeat" animation__float="property: position; dir: alternate; dur: 2000; easing: easeInOutSine; loop: true; to: 0 0.2 0" animation__rotate="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true"></a-entity><a-light type="directional" intensity="0.8" position="1 2 1"></a-light><a-light type="ambient" intensity="0.5"></a-light><a-sound id="phoenix-audio" src="#phoenix-sound" autoplay="false" loop="true" volume="1"></a-sound></a-marker><a-entity camera cursor="rayOrigin: mouse" raycaster="objects: #phoenix"></a-entity>
+</a-scene></template></body></html>
