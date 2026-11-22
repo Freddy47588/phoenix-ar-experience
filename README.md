@@ -4,7 +4,7 @@
 
 ## 🚀 Live Demo
 
-Experience Phoenix WebAR: [freddy47588.github.io/phoenix-ar-experience](https://freddy47588.github.io/phoenix-ar-experience/)
+Experience Phoenix WebAR: [phoenix-ar-experience.pages.dev](https://phoenix-ar-experience.pages.dev)
 
 A current mobile browser is recommended for AR. Camera access requires HTTPS and a marker; the 3D Preview works without either.
 
@@ -25,7 +25,7 @@ A current mobile browser is recommended for AR. Camera access requires HTTPS and
 
 ### AR Mode
 
-1. Open the [live demo](https://freddy47588.github.io/phoenix-ar-experience/).
+1. Open the [live demo](https://phoenix-ar-experience.pages.dev).
 2. View or download the marker.
 3. Select **Start AR** and allow camera access.
 4. Point the camera at the complete marker in even light.

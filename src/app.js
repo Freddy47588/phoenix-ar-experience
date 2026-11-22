@@ -1,7 +1,7 @@
 (() => {
   "use strict";
   const $ = (selector) => document.querySelector(selector);
-  const LIVE_URL = "https://freddy47588.github.io/phoenix-ar-experience/";
+  const LIVE_URL = "https://phoenix-ar-experience.pages.dev/";
   const ui = { start: $("#start-screen"), startButton: $("#start-button"), previewButton: $("#preview-button"), root: $("#scene-root"), arTemplate: $("#ar-scene-template"), previewTemplate: $("#preview-scene-template"), arToolbar: $("#ar-toolbar"), previewToolbar: $("#preview-toolbar"), statusCard: $(".status-card"), status: $("#tracking-status"), mute: $("#mute-button"), fullscreen: $("#fullscreen-button"), reset: $("#reset-preview"), closePreview: $("#close-preview"), loading: $("#loading"), loadingText: $("#loading-message"), error: $("#error-message"), dialog: $("#marker-dialog"), close: $("#close-marker"), orientation: $("#orientation-note"), toast: $("#toast"), qr: $("#qr-code") };
   const state = { mode: "landing", markerVisible: false, muted: false, audioBlocked: false, sound: null, cleanup: [], errorTimer: null, toastTimer: null };
 
